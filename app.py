@@ -3,35 +3,33 @@ import os
 
 app = Flask(__name__)
 
-# 🔐 SECRET KEY
-app.secret_key = os.urandom(24)
+# 🔐 SECRET KEY (fixed)
+app.secret_key = "secret123"
 
 
 # =========================
 # 🔐 ADMIN AUTH
 # =========================
-from routes.admin.register import register_bp
-from routes.admin.login import login_bp
+from register import register_bp
+from login import login_bp
 
 # =========================
 # 🛠️ ADMIN PANEL
 # =========================
-
-from routes.admin.users import users_bp
-
-from routes.admin.category import category_bp
-from routes.admin.quiz import quiz_bp
-from routes.admin.question import question_bp
-from routes.admin.bulk_question import bulk_bp
+from users import users_bp
+from category import category_bp
+from quiz import quiz_bp
+from question import question_bp
+from bulk_question import bulk_bp
 
 # =========================
 # 🌍 USER SIDE
 # =========================
-from routes.user.auth import auth_bp
-from routes.user.home import home_bp
-from routes.user.quiz import user_quiz_bp
-from routes.user.play import play_bp
-from routes.user.score import score_bp
+from auth import auth_bp
+from home import home_bp
+from quiz import user_quiz_bp
+from play import play_bp
+from score import score_bp
 
 
 # =========================
@@ -39,7 +37,6 @@ from routes.user.score import score_bp
 # =========================
 
 # ADMIN
-
 app.register_blueprint(users_bp, url_prefix="/admin")
 app.register_blueprint(register_bp, url_prefix="/admin")
 app.register_blueprint(login_bp, url_prefix="/admin")
@@ -54,7 +51,7 @@ app.register_blueprint(auth_bp)              # /login /register
 app.register_blueprint(home_bp)              # /
 app.register_blueprint(user_quiz_bp, url_prefix="/user")
 app.register_blueprint(play_bp, url_prefix="/user")
-app.register_blueprint(score_bp)
+app.register_blueprint(score_bp, url_prefix="/user")   # ✅ FIX
 
 
 # =========================
@@ -65,14 +62,15 @@ def protect():
 
     open_routes = ["/login", "/register", "/admin/login", "/admin/register", "/static"]
 
-    if "user_id" not in session:
+    # 👉 Admin + User दोनों check
+    if not any(request.path.startswith(route) for route in open_routes):
 
-        # अगर admin route है तो छोड़ दो
         if request.path.startswith("/admin"):
-            return None
-
-        if not any(request.path.startswith(route) for route in open_routes):
-            return redirect("/login")
+            if "admin_id" not in session:
+                return redirect("/admin/login")
+        else:
+            if "user_id" not in session:
+                return redirect("/login")
 
 
 # =========================
